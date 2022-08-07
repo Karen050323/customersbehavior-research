@@ -1,0 +1,167 @@
+---
+title: "Untitled"
+author: "David Rose"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+# PACKAGES
+```{r}
+library("emmeans")
+library("lme4")
+library("afex")
+library("tidyverse")
+```
+
+#Global Options
+```{r}
+# set ggplot theme
+theme_set(theme_classic())
+
+```
+
+#DATA
+##Read in Data
+```{r}
+df.exp1 = read_csv("../../data/exp1.csv")
+
+```
+
+##Wrangle
+```{r}
+df.exp1 = df.exp1 %>% 
+  mutate(store_selection = if_else(store_selection == "a", 1,
+                                   0),
+         display = factor(display,
+                        levels = c("0", "1"),
+                        labels = c("no", "yes")),
+          discount = factor(discount,
+                        levels = c("0", "1"),
+                        labels = c("no", "yes")),
+          feedback = factor(feedback,
+                        levels = c("0", "1"),
+                        labels = c("no", "yes")))
+
+df.exp1 = df.exp1 %>% 
+  mutate(participant = rep(1:8, 30))
+```
+
+#PLOTS
+## Dot Plot of Means for Store Selection
+
+```{r}
+ggplot(data = df.exp1,
+       mapping = aes(x = display,
+                     y = store_selection,
+                     group = discount,
+                     color = discount,
+                     fill = discount)) + 
+  geom_point(position = position_jitterdodge(dodge.width = 0.5,
+                                             jitter.width = 0.1,
+                                             jitter.height = 0.1),
+             alpha = 0.1) + 
+  stat_summary(fun.data = "mean_cl_boot",
+               position = position_dodge(width = 0.5),
+               shape = 21,
+               color = "black",
+               size = .5) + 
+  scale_fill_brewer(palette = "Set1") + 
+  scale_color_brewer(palette = "Set1") + 
+  facet_wrap(~feedback, ncol = 2)
+
+ggsave("store_selection.pdf", height = 5, width = 8)
+```
+
+## Dot Plot of Means for Store A Rating
+
+```{r}
+ggplot(data = df.exp1,
+       mapping = aes(x = display,
+                     y = a,
+                     group = discount,
+                     color = discount,
+                     fill = discount)) + 
+  geom_point(position = position_jitterdodge(dodge.width = 0.5,
+                                             jitter.width = 0.1,
+                                             jitter.height = 0.1),
+             alpha = 0.1) + 
+  stat_summary(fun.data = "mean_cl_boot",
+               position = position_dodge(width = 0.5),
+               shape = 21,
+               color = "black",
+               size = .5) + 
+  scale_fill_brewer(palette = "Set1") + 
+  scale_color_brewer(palette = "Set1") + 
+  facet_wrap(~feedback, ncol = 2)
+
+ggsave("store_a.pdf", height = 5, width = 8)
+```
+
+## Dot Plot of Means for Store B Rating
+
+```{r}
+ggplot(data = df.exp1,
+       mapping = aes(x = display,
+                     y = b,
+                     group = discount,
+                     color = discount,
+                     fill = discount)) + 
+  geom_point(position = position_jitterdodge(dodge.width = 0.5,
+                                             jitter.width = 0.1,
+                                             jitter.height = 0.1),
+             alpha = 0.1) + 
+  stat_summary(fun.data = "mean_cl_boot",
+               position = position_dodge(width = 0.5),
+               shape = 21,
+               color = "black",
+               size = .5) + 
+  scale_fill_brewer(palette = "Set1") + 
+  scale_color_brewer(palette = "Set1") + 
+  facet_wrap(~feedback, ncol = 2)
+
+ggsave("store_b.pdf", height = 5, width = 8)
+```
+
+## Dot Plot of Means for Stores A and B Rating
+
+```{r}
+
+df.plot = df.exp1 %>% 
+  pivot_longer(cols = a:b,
+               names_to = "store_comparison",
+               values_to = "rating")
+  
+  
+ggplot(data = df.plot,
+       mapping = aes(x = display,
+                     y = rating,
+                     group = store_comparison,
+                     color = store_comparison,
+                     fill = store_comparison)) + 
+  geom_point(position = position_jitterdodge(dodge.width = 0.5,
+                                             jitter.width = 0.1,
+                                             jitter.height = 0.1),
+             alpha = 0.1) + 
+  stat_summary(fun.data = "mean_cl_boot",
+               position = position_dodge(width = 0.5),
+               shape = 21,
+               color = "black",
+               size = .5) + 
+  scale_fill_brewer(palette = "Set1") + 
+  scale_color_brewer(palette = "Set1") + 
+  facet_grid(vars(discount), vars(feedback))
+
+ggsave("stores_ab.pdf", height = 5, width = 8)
+```
+
+#STATS
+
+```{r}
+
+fit1 = glmer(store_selection ~ 1 + display*discount*feedback + (1 | participant),
+            data = df.exp1,
+            family = "binomial")
+           
+summary(fit1)
+
+```
